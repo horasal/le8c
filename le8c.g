@@ -15,6 +15,10 @@ Greg : class {
 	stack := Stack<Node> new()
 	header := ArrayList<Header> new()
 	footer := Footer new()
+	
+	variableStack := Stack<Node> new()
+
+	thunks := ArrayList<Thunk> new()
 
 	yyinput: inline func -> Char {
 		c := reader read()
@@ -22,7 +26,49 @@ Greg : class {
 		c
 	}
 
+	matchDot: func -> Bool { 
+		position += 1 
+		true
+	}
+	matchChar: func(c: Char) -> Bool {
+		if(reader peek() == c){
+		r	reader read()
+			return true
+		}
+		false
+	}
+	matchString: func(s: String) -> Bool {
+		possav := position
+		for((c,i) in s){
+			if(reader peek() != c){
+				return false
+			}
+			reader read()
+		}
+		return true
+	}
+
+	matchClass: func(bits: String, cclass: String) -> Bool {
+		c : Int = reader peek() as UChar
+		if(bits[ c >> 3 ] & (1 << (c & 7))){
+			reader read()
+			return true
+		}
+		return false
+	}
+
+	do: func(thunk: Thunk){
+		thunks add(thunk)
+	}
+
+	done: func {
+		for(t in thunks){ t action(this, this text, yyleng, this data) }
+		thunks clear()
+	}
 %}
+
+
+
 grammar=	- ( declaration | definition )+ trailer? end-of-file
 
 declaration=	'%{' < ( !'%}' . )* > RPERCENT		{ header add(Header new(yytext)) }						#{YYACCEPT}
