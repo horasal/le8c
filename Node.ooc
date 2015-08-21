@@ -23,10 +23,19 @@ RuleManager: class{
 }
 
 Node: abstract class {
+	count : static Int = 0
 	errorBlock: String
 	compile: abstract func -> String
 	consumesInput: abstract func -> Bool
 	toString: abstract func -> String
+	counter: static func -> Int { 
+		count += 1
+		return count - 1
+	}
+	save: func(n: Int) -> String { "yyposition%d := position\n yythunkposition%d := thunkPosition\n" format(n, n) }
+	restore: func(n: Int) -> String { "position = yyposition%d\nthunkPosition = yythunkposition%d\n" format(n, n) }
+	label: func(n: Int) -> String{ "case label%d =>" format(n) }
+	jump: func(n: Int) -> String { "currentlabel = label%d\ncontinue\n" format(n) }
 }
 
 Header : class extends Node {
@@ -64,9 +73,19 @@ Rule: class extends Node {
 	compile: func -> String {
 		if(!expression) Error new("rule %s used but not defined" format(name)) throw()
 		safe := expression instanceOf?(Query) || expression instanceOf?(Star)
-		//ko := globalCounter()
-		ret := "yyRule: func {\n"
-		
+		ko := Node counter()
+		ret := "yyRule%s: func -> Bool {\n" format(name)
+		if(!safe) save(0)
+		if(variables) ret += "yyDo(yyPush, %d, 0, \"yyPush\")"
+		if(expression instanceOf?(Rule)) Error new("internal error #1 (%s)" format(expression as Rule name)) throw()
+		ret += expression compile(ko)
+		if(!safe){
+			jump(ko)
+			label(ko)
+			restore(0)
+		}
+		if(variables) ret += "yyDo(yyPop, %d, 0, \"yyPop\")"
+		ret + "return true\n}\n"
 	}
 
 	consumesInput: func -> Bool {
@@ -103,7 +122,13 @@ Name: class extends Node {
 		variable = null
 		rule flags = rule flags | RuleUsed
 	}
-	compile: func -> String
+	compile: func(ko: Int) -> String{
+		ret = "if(!yyRule%s()){\n" format(rule name)
+		if(errorBlock size > 0) ret += callErrorBlock()
+		ret += jump(ko) + "}\n"
+		if(variable) ret += "yyDo(yySet, %d, 0, \"yySet\")" format(variable offset)
+		ret
+	}
 	consumesInput: func -> Bool { rule consumesInput() }
 }
 
@@ -116,7 +141,10 @@ Dot: class extends Node {
 Character: class extends Node {
 	value: string
 	init: func(=value)
-	compile: func -> String
+	compile: func(ko: Int) -> String {
+		if(value size == 1){
+		}
+	}
 	consumesInput: func -> Bool { value size > 0 }
 }
 
