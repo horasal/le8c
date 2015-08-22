@@ -6,17 +6,19 @@ import [Node, Error]
 
 Greg : class {
 	lineNumber = 0
-	rowNumber = 0
 
 	fileName: String
-	reader: Reader
+	reader: Reader = stdin
 	writer: Writer = stdout
 
 	stack := Stack<Node> new()
 	header := ArrayList<Header> new()
 	footer := Footer new()
-	
-	variableStack := Stack<Node> new()
+
+	offset: Int = 0
+	variableStack := HashMap<Int, Node> new()
+
+	set: func { variableStack[offset] = }
 
 	thunks := ArrayList<Thunk> new()
 
@@ -26,13 +28,13 @@ Greg : class {
 		c
 	}
 
-	matchDot: func -> Bool { 
-		position += 1 
+	matchDot: func -> Bool {
+		position += 1
 		true
 	}
 	matchChar: func(c: Char) -> Bool {
 		if(reader peek() == c){
-		r	reader read()
+			r	reader read()
 			return true
 		}
 		false
@@ -57,7 +59,7 @@ Greg : class {
 		return false
 	}
 
-	do: func(thunk: Thunk){
+	do: func(action: Func, name: String){
 		thunks add(thunk)
 	}
 
@@ -65,6 +67,7 @@ Greg : class {
 		for(t in thunks){ t action(this, this text, yyleng, this data) }
 		thunks clear()
 	}
+
 %}
 
 
@@ -81,7 +84,7 @@ definition=	s:identifier 				{ if(r := rules find(yytext) {
 							  } else {
 							  	rules add(yytext, 1)
 								stack push(rules last())
-							  } 
+							  }
 							}
 			EQUAL expression		{ e := stack pop()
 							  stack peek() as Rule setExpr(e) }
@@ -168,19 +171,37 @@ end-of-line=	'\r\n' | '\n' | '\r'
 end-of-file=	!.
 
 %%
-	compile: func {
+
+	compileHeader: func {
 		for(h in header){ writer write(h compile()). nl() }
 		writer nl()
-		// TODO copile rule
+	}
 
-		// compile footer
+	compileActions: func {
+
+	}
+
+	compileRules: func {
+
+	}
+
+	compileFooter: func {
 		writer write(footer compile()). nl()
 	}
 }
 
 main : func(args: ArrayList<String>) -> Int{
+	if(args size > 2) Error new("Too many arguments") throw()
 	g := Greg new()
+	if(args size == 2) {
+		g filename = args[1]
+		g reader = FileReader new(args[1])
+	}
 	g parse()
-	g compile()
+	g compileHeader()
+	g compileActions()
+	g compileRules()
+	g compileFooter()
+	g reader free()
 	0
 }
