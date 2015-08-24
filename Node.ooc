@@ -30,9 +30,9 @@ Node: abstract class {
     call: abstract func -> String
 	consumesInput: abstract func -> Bool
 	toString: abstract func -> String
-	counter: static func -> Int { 
-		count += 1
-		return count
+	counter: func -> Int { 
+		Node count += 1
+		return Node count
 	}
 }
 
@@ -120,8 +120,8 @@ Name: class extends Node {
         ret = "Name%d: func -> Bool { if(!yyRule%s()){\n" format(id, rule name)
 		if(errorBlock size > 0) ret += callErrorBlock()
 		ret += "return false\n}\n"
-		if(variable) ret += "yyDo(set, %d, 0, \"yySet\")\n" format(variable offset)
-		ret + "true }"
+		if(variable) ret += "begin = %d\ndo(set, \"yySet\")\n" format(variable offset)
+		ret + "true \n}\n"
 	}
 	consumesInput: func -> Bool { rule consumesInput() }
 }
@@ -133,7 +133,7 @@ Dot: class extends Node {
     call: func -> String{ "Dot%d()" format(id) }
 	compile: func -> String{
         ret = "Dot%d: func -> Bool{\n" format(id)
-        ret + "matchDot()\n}"
+        ret + "matchDot()\n}\n"
     }
 	consumesInput: func -> Bool { true }
 }
@@ -292,7 +292,11 @@ PeekFor: class extends Node {
 	init: func(=element){
         id = counter()
     }
-	compile: func -> String
+	compile: func -> String {
+        "PeekFor%d: func -> Bool {\n" format(id) + \
+        "\nif(!%s) return false\n" element call()+ \
+        "true \n}\n"
+    }
     call: func -> String { "PeekFor%d()" format(id) }
 	consumesInput: func -> Int { false }
 }
@@ -304,7 +308,11 @@ PeekNot: class extends Node {
     }
 
     call: func -> String { "PeekNot%d()" format(id) }
-	compile: func -> String
+	compile: func -> String {
+        "PeekNot%d: func -> Bool {\n" format(id) + \
+        "if(%s) return false \n" element call()+ \
+        "true \n}\n"
+    }
 	consumesInput: func -> Int { false }
 }
 
@@ -315,7 +323,11 @@ Query: class extends Node {
     }
 
     call: func -> String { "Query%d()" format(id) }
-	compile: func -> String
+	compile: func -> String {
+        "Query%d: func -> Bool {\n" format(id) + \
+        "%s\n" element call()+ \
+        "true \n}\n"
+    }
 	consumesInput: func -> Int { false }
 }
 
@@ -325,15 +337,24 @@ Star: class extends Node {
         id = counter()
     }
     call: func -> String { "Star%d()" format(id) }
-	compile: func -> String
+	compile: func -> String {
+        "Star%d: func -> Bool {\n" format(id) + \
+        "while(%s) true\n" format(element call()) + \
+        "true + \n}\n"
+    }
 	consumesInput: func -> Int { false }
 }
 
 Plus: class extends Node {
 	element: Node
-	init: func(=element)
-	compile: func -> String{
+	init: func(=element){
         id = counter()
+    }
+	compile: func -> String{
+        "Star%d: func -> Bool {\n" format(id) + \
+        "if(!%s) return false" format(element call()) + \
+        "while(%s) true\n" format(element call()) + \
+        "true + \n}\n"
     }
     call: func -> String { "Plus%d()" format(id) }
 	consumesInput: func -> Int { element consumesInput() }
