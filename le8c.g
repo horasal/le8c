@@ -5,20 +5,39 @@ import io/[Reader, Writer]
 import [Node, Error]
 
 Greg : class {
+    /***
+     * line number of source file
+     * not used
+     */
 	lineNumber = 0
 
 	fileName: String
 	reader: Reader = stdin
 	writer: Writer = stdout
 
+    /***
+     * Stack of AST
+     */
 	stack := Stack<Node> new()
+    /***
+     * only one header is allowed now
+     */
 	header := ArrayList<Header> new()
+    /***
+     * anything after %%
+     */
 	footer := Footer new()
 
+    /***
+     * yy is the runtime variable of of $$
+     */
+    yy: String
+    /***
+     * offset marks that which position to save yy
+     */
 	offset: Int = 0
-	variableStack := HashMap<Int, Node> new()
-
-	set: func { variableStack[offset] = }
+	variableStack := HashMap<Int, String> new()
+	set: func { variableStack[offset] = yy }
 
 	thunks := ArrayList<Thunk> new()
 
@@ -28,17 +47,33 @@ Greg : class {
 		c
 	}
 
+    /***
+     * match* class
+     * if match fails, position of reader should be kept unchanged
+     */
+
+    /***
+     * Dot[.] match anything
+     */
 	matchDot: func -> Bool {
 		position += 1
 		true
 	}
+
+    /***
+     * Char match a given char
+     */
 	matchChar: func(c: Char) -> Bool {
 		if(reader peek() == c){
-			r	reader read()
+			reader read()
 			return true
 		}
 		false
 	}
+
+    /***
+     * String match a given string
+     */
 	matchString: func(s: String) -> Bool {
 		possav := position
 		for((c,i) in s){
@@ -50,6 +85,9 @@ Greg : class {
 		return true
 	}
 
+    /***
+     * Class match a character class, like [A-Z]
+     */
 	matchClass: func(bits: String, cclass: String) -> Bool {
 		c : Int = reader peek() as UChar
 		if(bits[ c >> 3 ] & (1 << (c & 7))){
@@ -59,15 +97,12 @@ Greg : class {
 		return false
 	}
 
+    text: func -> Bool {
+    }
+
 	do: func(action: Func, name: String){
 		thunks add(thunk)
 	}
-
-	done: func {
-		for(t in thunks){ t action(this, this text, yyleng, this data) }
-		thunks clear()
-	}
-
 %}
 
 
@@ -172,19 +207,31 @@ end-of-file=	!.
 
 %%
 
+    /***
+     * Write header between %{ .. %}
+     */
 	compileHeader: func {
 		for(h in header){ writer write(h compile()). nl() }
 		writer nl()
 	}
 
+    /***
+     * Create actions functions for each rule
+     */
 	compileActions: func {
 
 	}
 
+    /***
+     * Create functinos for matching rules
+     */
 	compileRules: func {
 
 	}
 
+    /***
+     * write footer after %%
+     */
 	compileFooter: func {
 		writer write(footer compile()). nl()
 	}
