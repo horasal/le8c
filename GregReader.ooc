@@ -313,21 +313,65 @@ GregReader : class{
      */
     seek: func(pos: Int) { position = pos }
 
+    /***
+     * Read a character
+     */
     read: func -> String {
         c := peek()
         if(c size == 1) position += 1
         c
     }
 
+    /***
+     * Read a string
+     */
     read: func ~str (n: Int) -> String {
         s := peek(n)
         position += s size
         s
     }
 
+    /***
+     * Go back for n characters
+     * Notice that n is not bytes but real characters in utf-8
+     */
     rewind: func (n: Int = 1) {
         position -= n
         if(position < 0) position = 0
+    }
+
+    /***
+     * Read untile the first match of c (include c) or reach the number limits
+     * if n == -1, the number is unlimited
+     */
+    readUntil: func(c: UInt32, n: Int = -1) -> String {
+        count := 0
+        ret := ArrayList<UInt> new()
+        while ( position < buffer size && (n == -1 || count < n) && buffer[position] != c ){
+            ret add(buffer[position])
+            count += 1
+            position += 1
+        }
+        ret add(buffer[position])
+        position += 1
+        encodeUTF8(ret)
+    }
+
+    /***
+     * Read untile the first match of c (include c) or reach the number limits
+     * if n == -1, the number is unlimited
+     */
+    readUntil: func ~string (c: String, n: Int = -1) -> String {
+        count := 0
+        ret := ArrayList<UInt> new()
+        while ( position < buffer size && (n == -1 || count < n) && (ret size < c size || substring(position - c size, position) != c) ){
+            ret add(buffer[position])
+            count += 1
+            position += 1
+        }
+        ret add(buffer[position])
+        position += 1
+        encodeUTF8(ret)
     }
 
 }
