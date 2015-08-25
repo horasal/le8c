@@ -42,6 +42,9 @@ Greg : class {
 
 	thunks := ArrayList<Thunk> new()
 
+    /***
+     * NOT USED
+     */
 	yyinput: inline func -> Char {
 		c := reader read()
 		if(c == '\n' || c == '\r') lineNumber += 1
@@ -79,20 +82,32 @@ Greg : class {
 		possav := position
         if(s == reader peek(s size)) {
             reader read(s size)
+            return true
         }
         false
 	}
 
     /***
      * Class match a character class, like [A-Z]
+     * Supportted pattern: [X-X], [^XX-X]...
      */
-	matchClass: func(bits: String, cclass: String) -> Bool {
-		c : Int = reader peek() as UChar
-		if(bits[ c >> 3 ] & (1 << (c & 7))){
-			reader read()
-			return true
-		}
-		return false
+	matchClass: func(cclass: ArrayList<UInt32>) -> Bool {
+        c := reader peekUTF8()
+        i := 0
+        action := true
+        if(cclass[i] as UInt32 == '[') i += 1
+        if(cclass[i] as UInt32 == '^') action = false
+        while(i < cclass size){
+            cc := cclass[i] as UInt
+            match(cc){
+                case ']' => break
+                case '[' => break // error
+                case '-' => if(cclass[i-1] <= c && c<=cclass[i+1]) return action
+                case => if(cclass[i] == c) return action
+            }
+            i += 1
+        }
+        !action
 	}
 
     text: func -> Bool {
