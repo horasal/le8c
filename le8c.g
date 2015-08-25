@@ -2,7 +2,7 @@
 import structs/[ArrayList, Stack, HashMap]
 import io/[Reader, Writer]
 
-import [Node, Error]
+import [Node, Error, GregReader]
 
 Greg : class {
     /***
@@ -12,7 +12,7 @@ Greg : class {
 	lineNumber = 0
 
 	fileName: String
-	reader: Reader = stdin
+	reader: GregReader
 	writer: Writer = stdout
 
     /***
@@ -29,11 +29,12 @@ Greg : class {
 	footer := Footer new()
 
     /***
-     * yy is the runtime variable of of $$
+     * yy is the runtime variable `$$`
      */
     yy: String
     /***
      * offset marks that which position to save yy
+     * sometimes it also be used to set the position for reading text
      */
 	offset: Int = 0
 	variableStack := HashMap<Int, String> new()
@@ -56,7 +57,7 @@ Greg : class {
      * Dot[.] match anything
      */
 	matchDot: func -> Bool {
-		position += 1
+        reader read()
 		true
 	}
 
@@ -76,13 +77,10 @@ Greg : class {
      */
 	matchString: func(s: String) -> Bool {
 		possav := position
-		for((c,i) in s){
-			if(reader peek() != c){
-				return false
-			}
-			reader read()
-		}
-		return true
+        if(s == reader peek(s size)) {
+            reader read(s size)
+        }
+        false
 	}
 
     /***
