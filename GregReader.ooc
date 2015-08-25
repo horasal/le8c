@@ -277,6 +277,37 @@ GregReader : class{
         pos < buffer size ? pos : buffer size - 1
     }
 
+
+    /***
+     * Read as UInt32
+     */
+    peekUTF8: func -> UInt32 {
+        if(!validPos?()) return 0
+        buffer[validPos(position)]
+    }
+
+    peekUTF8: func ~str (n: Int) -> ArrayList<UInt32> {
+        if(!validPos?()) return ArrayList<UInt32> new()
+        buffer slice(position, validPos(position+n))
+    }
+
+    readUTF8: func -> UInt32 {
+        if(!validPos?()) return 0
+        buffer[validPos(position)]
+        position += 1
+    }
+
+    readUTF8: func ~str (n: Int) -> ArrayList<UInt32> {
+        if(!validPos?()) return ArrayList<UInt32> new()
+        buffer slice(position, validPos(position+n))
+        position += 1
+    }
+
+
+    /***
+     * Read as Char
+     */
+
     peek: func -> String{
         if(!validPos?()) return ""
         encodeUTF8(buffer[validPos(position)])
