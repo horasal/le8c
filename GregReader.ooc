@@ -1,4 +1,4 @@
-import structs/ArrayList
+import structs/[ArrayList, Stack]
 
 /***
  * Convert utf-8 string
@@ -187,6 +187,7 @@ extend ArrayList<UInt32>{
 GregReader : class{
     buffer := ArrayList<UInt32> new()
     position: Int = 0
+    posStack := Stack<Int> new()
 
     ////////////////////////////////////////////////////////////////////////////////////////
     /* See http://bjoern.hoehrmann.de/utf-8/decoder/dfa/ for details.
@@ -231,6 +232,9 @@ GregReader : class{
     ////////////////////////////////////////////////////////////////////////////////////////
 
     init: func(text: String) { decodeUTF8(text) }
+
+    push: func { posStack push(position) }
+    pop: func { position = popStack pop() }
 
     /** 
      * Count how many bytes a codepoint contains
