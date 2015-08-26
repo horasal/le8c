@@ -192,9 +192,9 @@ Action: class extends Node {
 	name: String
 	rule: Node
 
-	init: func(=text, actionCount: Int, =rule){
-		name = "_%d_%s" format(actionCount, rule name)	
+	init: func(=text, =rule){
         id = counter()
+		name = "_%d_%s" format(id, rule name)	
 		for(i in 0..text size - 1){
 			if(text[i] == '$' && text[i+1] == '$'){
 				text[i] = 'y'
@@ -203,19 +203,27 @@ Action: class extends Node {
 		}
 	}
     call: func -> String { "Action%d()" format(id) }
+    /*** This is the real function than be called during matching */
     compile: func -> String {
         "Action%d: func -> Bool { \n" format(id) + \
         "do(yyAction%s, \"yyAction%s\")\n" format(name, name) + \
         "\n}\n"
     }
+
+    /*** CompileAction generates the functions that contain user-define code */
 	compileAction: func -> String {
-        ret := "yyAction%s(text: String, thunk: Thunk, data: Pointer){\n" format(name)
+        ret := "yyAction%s: func() {\n" format(name)
         ret += text + "\n"
 		ret + "}\n"
 	}
 	consumesInput: func -> Bool { false }
 }
 
+/***
+ * Predicate is the expression like '&e'
+ * for 'a &e', it only be accepted if 'a e' matches
+ * But e is not consumed.
+ */
 Predicate: class extends Node {
 	text: String
 	init: func(=text){
@@ -224,7 +232,9 @@ Predicate: class extends Node {
     call: func -> String { "Predicate%d()" format(id) }
 	compile: func -> String{
         "Predicate%d: func -> Bool { \n" format(id) + \
-        "text()\nif(!%s) return false" format(text) +\
+        "reader push()\n" + \
+        "if(!%s){ reader pop()\n return false\n}\n" format(text) +\
+        "reader pop()\n" + \
         "true\n}\n"
     }
 	consumesInput: func -> Bool { false }
@@ -287,6 +297,9 @@ Sequence: class extends Node {
 	}
 }
 
+/**
+ * PeekNot and Peekfor
+ */
 PeekFor: class extends Node {
 	element: Node
 	init: func(=element){
@@ -294,7 +307,9 @@ PeekFor: class extends Node {
     }
 	compile: func -> String {
         "PeekFor%d: func -> Bool {\n" format(id) + \
-        "\nif(!%s) return false\n" element call()+ \
+        "reader push()\n" + \
+        "\nif(!%s){reader pop()\n return false\n}\n" element call()+ \
+        "reader pop()\n" + \
         "true \n}\n"
     }
     call: func -> String { "PeekFor%d()" format(id) }
@@ -310,7 +325,9 @@ PeekNot: class extends Node {
     call: func -> String { "PeekNot%d()" format(id) }
 	compile: func -> String {
         "PeekNot%d: func -> Bool {\n" format(id) + \
-        "if(%s) return false \n" element call()+ \
+        "reader push()\n" + \
+        "if(%s){ reader pop() \n return false \n}\n" element call()+ \
+        "reader pop()\n" + \
         "true \n}\n"
     }
 	consumesInput: func -> Int { false }
