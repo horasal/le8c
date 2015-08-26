@@ -29,6 +29,11 @@ Greg : class {
 	footer := Footer new()
 
     /***
+     * Current matched text, widely used in yyAction
+     */
+    yytext: String
+
+    /***
      * yy is the runtime variable `$$`
      */
     yy: String
@@ -40,7 +45,9 @@ Greg : class {
 	variableStack := HashMap<Int, String> new()
 	set: func { variableStack[offset] = yy }
 
-	thunks := ArrayList<Thunk> new()
+    rules := RuleManager new()
+    actions := ArrayList<Action> new()
+    thunks := HashMap<String, Func> new()
 
     /***
      * NOT USED
@@ -110,9 +117,6 @@ Greg : class {
         !action
 	}
 
-    text: func -> Bool {
-    }
-
 	do: func(action: Func, name: String){
 		thunks add(thunk)
 	}
@@ -166,7 +170,9 @@ primary=	(
 |		literal					{ stack push(String new(yytext)) }
 |		class					{ stack push(Class new(yytext)) }
 |		DOT					{ stack push(Dot new()) }
-|		action					{ stack push(Action new(yytext)) }
+|		action					{ stack push(Action new(yytext)) 
+                                  actions add(stack peek())
+                                }
 |		BEGIN					{ stack push(Predicate new("YY_BEGIN")) }
 |		END					{ stack push(Predicate new("YY_END")) }
                 ) (errblock { stack peek() errorBlock = yytext})?
@@ -232,14 +238,16 @@ end-of-file=	!.
      * Create actions functions for each rule
      */
 	compileActions: func {
-
+        for(a in actions){ writer write(a compileAction()). nl() }
+		writer nl()
 	}
 
     /***
      * Create functinos for matching rules
      */
 	compileRules: func {
-
+        for(r in rules){ writer write(r compile()). nl() }
+		writer nl()
 	}
 
     /***
@@ -259,8 +267,8 @@ main : func(args: ArrayList<String>) -> Int{
 	}
 	g parse()
 	g compileHeader()
-	g compileActions()
 	g compileRules()
+	g compileActions()
 	g compileFooter()
 	g reader free()
 	0
