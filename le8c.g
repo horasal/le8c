@@ -39,7 +39,6 @@ Greg : class {
     yy: String
     /***
      * offset marks that which position to save yy
-     * sometimes it also be used to set the position for reading text
      */
 	offset: Int = 0
 	variableStack := HashMap<Int, String> new()
@@ -48,6 +47,19 @@ Greg : class {
     rules := RuleManager new()
     actions := ArrayList<Action> new()
     thunks := HashMap<String, Func> new()
+
+    pbegin := 0
+    pend := 0
+
+    begin: func -> Bool { 
+        pbegin = reader position 
+        true 
+    }
+
+    end: func -> Bool { 
+        pend = reader position
+        true
+    }
 
     /***
      * NOT USED
@@ -117,12 +129,14 @@ Greg : class {
         !action
 	}
 
+    text: func -> bool { yytext = reader substring(begin, end) }
+
 	do: func(action: Func, name: String){
 		thunks add(thunk)
 	}
 %}
 
-
+# Grammar part
 
 grammar=	- ( declaration | definition )+ trailer? end-of-file
 
@@ -173,8 +187,8 @@ primary=	(
 |		action					{ stack push(Action new(yytext)) 
                                   actions add(stack peek())
                                 }
-|		BEGIN					{ stack push(Predicate new("YY_BEGIN")) }
-|		END					{ stack push(Predicate new("YY_END")) }
+|		BEGIN					{ stack push(Predicate new("begin()")) }
+|		END					{ stack push(Predicate new("end()")) }
                 ) (errblock { stack peek() errorBlock = yytext})?
 
 # Lexical syntax

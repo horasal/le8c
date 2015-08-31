@@ -120,7 +120,7 @@ Name: class extends Node {
         ret = "Name%d: func -> Bool { if(!yyRule%s()){\n" format(id, rule name)
 		if(errorBlock size > 0) ret += callErrorBlock()
 		ret += "return false\n}\n"
-		if(variable) ret += "begin = %d\ndo(set, \"yySet\")\n" format(variable offset)
+		if(variable) ret += "offset = %d\ndo(set, \"yySet\")\n" format(variable id)
 		ret + "true \n}\n"
 	}
 	consumesInput: func -> Bool { rule consumesInput() }
@@ -220,9 +220,7 @@ Action: class extends Node {
 }
 
 /***
- * Predicate is the expression like '&e'
- * for 'a &e', it only be accepted if 'a e' matches
- * But e is not consumed.
+ * Predicate read matched text to yytext
  */
 Predicate: class extends Node {
 	text: String
@@ -232,9 +230,8 @@ Predicate: class extends Node {
     call: func -> String { "Predicate%d()" format(id) }
 	compile: func -> String{
         "Predicate%d: func -> Bool { \n" format(id) + \
-        "reader push()\n" + \
-        "if(!%s){ reader pop()\n return false\n}\n" format(text) +\
-        "reader pop()\n" + \
+        "text()\n" + \
+        "if(!%s){\n return false\n}\n" format(text) + \
         "true\n}\n"
     }
 	consumesInput: func -> Bool { false }
